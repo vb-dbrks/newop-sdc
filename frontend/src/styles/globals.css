@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --velocia: #a51d70;
+    --velocia-hover: #7d1f50;
+    --velocia-light: #fce4ec;
+    --ink: #0a0a0a;
+    --muted: #64748b;
+    --line: #e2e8f0;
+    --badge-newop: #fbbf24;
+    --badge-sdc: #3b82f6;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-white text-ink font-sans antialiased;
+  }
+}
+
+@layer components {
+  .pill-primary {
+    @apply inline-flex items-center gap-2 rounded-full bg-velocia px-6 py-3 text-white font-semibold transition;
+    @apply hover:bg-velocia-hover hover:scale-105 hover:shadow-pill duration-300;
+  }
+}

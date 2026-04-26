@@ -1,0 +1,24 @@
+type: new_opportunity
+version: 1
+sections:
+  - id: strategic_context.identity
+    label: Identity
+    fields:
+      - { key: study_title,    label: STUDY TITLE,    type: textarea, required: true,  ordinal: 1 }
+      - { key: study_acronym,  label: STUDY ACRONYM,  type: text,     required: false, ordinal: 2 }
+      - { key: brand,          label: BRAND,          type: text,     required: false, ordinal: 3 }
+      - { key: therapeutic_area, label: THERAPEUTIC AREA, type: text, required: false, ordinal: 4 }
+      - { key: indication,     label: INDICATION,     type: text,     required: false, ordinal: 5 }
+      - { key: scientific_phase, label: SCIENTIFIC PHASE, type: checkbox_group, required: false, ordinal: 6,
+          options: [phase_3b, phase_4] }
+      - { key: study_type,     label: STUDY TYPE,     type: select,   required: false, ordinal: 7,
+          options: [interventional, non_interventional] }
+  - id: strategic_context.strategic_intent
+    label: Strategic Intent
+    fields:
+      - { key: strategic_intent,  label: STRATEGIC INTENT,  type: textarea, required: true, ordinal: 1 }
+      - { key: target_evidence_gap, label: TARGET EVIDENCE GAP, type: textarea, required: false, ordinal: 2 }
+  - id: strategic_context.study_core
+    label: Study Core
+    fields:
+      - { key: study_core_summary, label: STUDY CORE SUMMARY, type: textarea, required: false, ordinal: 1 }

@@ -1,0 +1,34 @@
+type: sdc
+version: 1
+toc:
+  - { id: study_details,            label: Study Details }
+  - { id: rationale,                label: "1. Rationale" }
+  - { id: objectives_hypotheses,    label: "2. Objectives and Hypotheses" }
+  - { id: methodology,              label: "3. Methodology" }
+  - { id: methodology.study_design, label: "3.1 Study Design" }
+  - { id: methodology.study_population, label: "3.2 Study Population" }
+  - { id: methodology.inclusion,    label: "3.2.1 Inclusion Criteria" }
+  - { id: methodology.exclusion,    label: "3.2.2 Exclusion Criteria" }
+  - { id: methodology.data_source,  label: "3.3 Data Source" }
+  - { id: methodology.assessments,  label: "3.4 Study Assessments / Variables and Epidemiological Methods" }
+  - { id: methodology.limitations,  label: "3.5 Study Limitations" }
+  - { id: stats,                    label: "4. Statistical Methods" }
+  - { id: stats.power,              label: "4.1 Sample Size and Statistical Power; Precision Assessment" }
+  - { id: stats.considerations,     label: "4.2 Statistical Considerations" }
+  - { id: timelines,                label: "5. Timelines and Operational Information" }
+  - { id: references,               label: "6. References" }
+sections:
+  - id: study_details
+    label: Study Details
+    fields:
+      - { key: study_code,        label: STUDY CODE,        type: text,     required: true,  ordinal: 1 }
+      - { key: owner,             label: OWNER,             type: text,     required: false, ordinal: 2 }
+      - { key: study_title,       label: STUDY TITLE,       type: textarea, required: true,  ordinal: 3 }
+      - { key: description,       label: DESCRIPTION,       type: textarea, required: true,  ordinal: 4 }
+      - { key: acronym,           label: ACRONYM,           type: text,     required: false, ordinal: 5 }
+      - { key: treatment,         label: TREATMENT,         type: text,     required: false, ordinal: 6 }
+      - { key: indications,       label: INDICATION(S),     type: textarea, required: false, ordinal: 7 }
+      - { key: intervention_model, label: INTERVENTION MODEL, type: text,   required: false, ordinal: 8 }
+      - { key: study_type,        label: STUDY TYPE,        type: text,     required: false, ordinal: 9 }
+      - { key: leading_team,      label: AZ TEAM/FUNCTION LEADING STUDY, type: text, required: false, ordinal: 10 }
+  # Remaining sections (rationale, objectives, methodology, ...) to be filled in once their field shape is captured.

@@ -19,6 +19,15 @@ async def get_or_create_by_sso_subject(
 ) -> User:
     existing = await get_by_sso_subject(db, sso_subject)
     if existing is not None:
+        # Self-heal: if the row was created by an older bootstrap that
+        # stored the email as the display name, upgrade it to whatever
+        # the current login resolved (typically the friendly-name-from-
+        # email derivation in auth.sso). Never overwrites a non-email
+        # name, so seeded display names ("Alice Author") are safe.
+        if "@" in (existing.name or "") and "@" not in name:
+            existing.name = name
+            await db.commit()
+            await db.refresh(existing)
         return existing
     user = User(sso_subject=sso_subject, email=email, name=name)
     db.add(user)

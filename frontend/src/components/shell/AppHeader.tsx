@@ -1,6 +1,6 @@
 import { Bell, ChevronDown } from "lucide-react";
 import logo from "@/assets/velocia-logo.png";
-import type { Me } from "@/lib/api";
+import { displayNameOf, type Me } from "@/lib/api";
 
 interface Props {
   me: Me | null;
@@ -14,7 +14,8 @@ function initials(name: string | undefined): string {
 }
 
 export default function AppHeader({ me }: Props) {
-  const displayName = me?.name?.split(" ")[0] ?? "Author";
+  const friendly = displayNameOf(me?.name);
+  const displayName = friendly.split(" ")[0] || "Author";
   return (
     <header className="sticky top-0 z-20 bg-white/90 backdrop-blur border-b border-line">
       <div className="flex items-center justify-between h-14 px-6">
@@ -39,7 +40,7 @@ export default function AppHeader({ me }: Props) {
             className="flex items-center gap-2 pr-2 pl-1 py-1 rounded-full hover:bg-slate-100 transition"
           >
             <span className="h-7 w-7 grid place-items-center rounded-full bg-velocia/10 text-velocia text-xs font-semibold">
-              {initials(me?.name)}
+              {initials(friendly)}
             </span>
             <span className="text-sm text-ink/80">{displayName}</span>
             <ChevronDown size={14} className="text-ink/50" />

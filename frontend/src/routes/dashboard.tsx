@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMe, type Me } from "@/lib/api";
+import { displayNameOf, getMe, type Me } from "@/lib/api";
 import AppHeader from "@/components/shell/AppHeader";
 import AuthoringComposer from "@/components/composer/AuthoringComposer";
 import StudyPortfolioTable from "@/components/portfolio/StudyPortfolioTable";
@@ -14,7 +14,7 @@ export default function Dashboard() {
       .catch((e) => setMeError(String(e)));
   }, []);
 
-  const firstName = me?.name?.split(" ")[0] ?? "Author";
+  const firstName = displayNameOf(me?.name).split(" ")[0] || "Author";
 
   return (
     <div className="min-h-screen bg-white">

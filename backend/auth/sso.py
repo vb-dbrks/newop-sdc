@@ -11,6 +11,7 @@ Three deps available:
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass
 from typing import Annotated
 
@@ -33,18 +34,41 @@ class CurrentUser:
     display_name: str
 
 
+_EMAIL_LOCAL_SEP = re.compile(r"[._\-+]")
+
+
+def friendly_name_from_email(email: str) -> str:
+    """Derive a human-readable display name from an email address.
+
+    `alice.smith@customer.com` → `Alice Smith`.
+    `j.doe-2@x.co`             → `J Doe 2`.
+
+    Used when the SSO proxy doesn't carry a preferred-username header,
+    so we never fall back to showing the raw email in the UI header.
+    """
+    local = email.split("@", 1)[0]
+    parts = [p for p in _EMAIL_LOCAL_SEP.split(local) if p]
+    if not parts:
+        return email
+    return " ".join(p.capitalize() for p in parts)
+
+
 def _identity_from_headers(request: Request) -> CurrentUser | None:
     email = request.headers.get("X-Forwarded-Email")
-    name = (
+    raw_name = (
         request.headers.get("X-Forwarded-Preferred-Username")
         or request.headers.get("X-Forwarded-User")
     )
-    if email and name:
-        return CurrentUser(sso_subject=email, email=email, display_name=name)
-    if email:
-        # Some proxy configurations only inject the email.
-        return CurrentUser(sso_subject=email, email=email, display_name=email)
-    return None
+    if not email:
+        return None
+    # Some proxies / IdPs send the email as the "preferred username" too.
+    # In that case fall through to email-derived naming so the dashboard
+    # doesn't say "Welcome, alice@customer.com".
+    if raw_name and "@" not in raw_name:
+        display = raw_name
+    else:
+        display = friendly_name_from_email(email)
+    return CurrentUser(sso_subject=email, email=email, display_name=display)
 
 
 def current_user(request: Request) -> CurrentUser:

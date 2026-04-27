@@ -10,11 +10,19 @@
 #
 # Resource model:
 #   - resources.database_instances.velocia_db        — Lakebase Postgres instance
-#   - resources.database_catalogs.velocia_db_catalog — UC catalog wrapping the Postgres database
 #   - resources.apps.velocia                         — the Databricks App, bound to the database
 #
 # Schema is auto-created at app startup via SQLAlchemy `Base.metadata.create_all`
 # (see backend/db/session.py:init_db). No Alembic.
+#
+# Note on UC catalog: this bundle deliberately does NOT create a Unity Catalog
+# wrapping the Lakebase database, because the app talks to Postgres directly
+# via asyncpg and never goes through UC. Creating a UC catalog requires
+# `CREATE CATALOG` on the metastore, which many service-principal / engagement
+# accounts don't have. If the customer wants UC SQL access to the OLTP data
+# later, a UC admin can create the catalog manually after the bundle deploys
+# (e.g. `CREATE FOREIGN CATALOG ... USING CONNECTION ...`), or you can
+# reinstate the `database_catalogs` resource block below.
 
 bundle:
   name: velocia-newop-sdc
@@ -31,11 +39,14 @@ variables:
     description: "Lakebase Postgres instance name."
     default: velocia-newop-sdc-db
   db_logical_name:
-    description: "Logical Postgres database name inside the instance."
-    default: velocia
-  uc_catalog_name:
-    description: "Unity Catalog name that wraps the Postgres database."
-    default: velocia_newop_sdc
+    description: >-
+      Logical Postgres database name to bind the app to. Defaults to
+      `databricks_postgres` — the database every Lakebase instance ships
+      with — so we don't need a UC catalog (or `CREATE CATALOG` perm) to
+      create a custom DB. Override via `--var db_logical_name=...` if you
+      want to point at a different database that already exists on the
+      instance.
+    default: databricks_postgres
 
 # Files to ship to the workspace deployment root. The app's source_code_path
 # is the bundle root, so frontend/dist must be present (it's the SPA bundle the
@@ -70,12 +81,15 @@ resources:
       capacity: CU_1
       node_count: 1
 
-  database_catalogs:
-    velocia_db_catalog:
-      name: ${var.uc_catalog_name}
-      database_instance_name: ${resources.database_instances.velocia_db.name}
-      database_name: ${var.db_logical_name}
-      create_database_if_not_exists: true
+  # Optional — uncomment ONLY if you have CREATE CATALOG on the metastore
+  # AND want UC SQL access to the OLTP data. The app itself does not need it.
+  #
+  # database_catalogs:
+  #   velocia_db_catalog:
+  #     name: velocia_newop_sdc
+  #     database_instance_name: ${resources.database_instances.velocia_db.name}
+  #     database_name: ${var.db_logical_name}
+  #     create_database_if_not_exists: true
 
   apps:
     velocia:

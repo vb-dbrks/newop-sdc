@@ -75,8 +75,9 @@ https://velocia-newop-sdc-<workspace-id>.azure.databricksapps.com
 ### What the bundle owns
 
 - `database_instances.velocia_db` — Lakebase Postgres instance (`velocia-newop-sdc-db`, CU_1, single node).
-- `database_catalogs.velocia_db_catalog` — UC catalog wrapping the Postgres database (`velocia`).
-- `apps.velocia` — the Databricks App, with the Postgres database bound under resource key `database` (perm `CAN_CONNECT_AND_CREATE`).
+- `apps.velocia` — the Databricks App, with the Lakebase database bound under resource key `database` (perm `CAN_CONNECT_AND_CREATE`). Defaults to the auto-created `databricks_postgres` logical database; override with `--var db_logical_name=...` if you want to bind to a different existing database on the instance.
+
+The bundle does NOT create a Unity Catalog wrapping the Postgres database — the app talks to Lakebase directly via asyncpg and doesn't need UC. This avoids requiring `CREATE CATALOG` on the metastore (a permission engagement / customer service principals frequently lack). To opt in to a UC catalog later, uncomment the `database_catalogs` block in `databricks.yml` (or have a UC admin create it manually).
 
 `app.yaml` reads the runtime-injected `PGHOST` / `PGUSER` / `PGDATABASE`, assembles a credential-free `DATABASE_URL`, and execs uvicorn against `$DATABRICKS_APP_PORT`. `backend/db/session.py` mints a Lakebase OAuth token (via `WorkspaceClient.database.generate_database_credential`) for every new physical pool connection — a static `PGPASSWORD` is **not** injected by the runtime, by design. Schema is auto-created on app startup via SQLAlchemy `Base.metadata.create_all` (see `backend/db/session.py:init_db`); no Alembic.
 

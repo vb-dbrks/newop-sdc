@@ -1,3 +1,5 @@
+from typing import Annotated
+
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status
 
 router = APIRouter(prefix="/uploads", tags=["uploads"])
@@ -5,9 +7,9 @@ router = APIRouter(prefix="/uploads", tags=["uploads"])
 
 @router.post("")
 async def upload(
-    file: UploadFile = File(...),
-    study_id: str = Form(...),
-    document_id: str | None = Form(None),
+    file: Annotated[UploadFile, File(...)],
+    study_id: Annotated[str, Form(...)],
+    document_id: Annotated[str | None, Form()] = None,
 ):
     """Stream the multipart body through files.upload() to a Volume path.
 

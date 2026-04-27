@@ -14,6 +14,7 @@ from fastapi import FastAPI
 app = FastAPI(title="Fake Velocia Agent", version="0.0.1")
 
 _RUNS: dict[str, dict[str, Any]] = {}
+_TASKS: set[asyncio.Task[None]] = set()
 
 STEP_SEQUENCE = [
     "analyzing_internal_assets",
@@ -33,7 +34,9 @@ async def start(payload: dict[str, Any]) -> dict[str, Any]:
         "steps": [{"name": s, "status": "pending"} for s in STEP_SEQUENCE],
         "kind": payload.get("kind", "generate"),
     }
-    asyncio.create_task(_advance(run_id))
+    task = asyncio.create_task(_advance(run_id))
+    _TASKS.add(task)
+    task.add_done_callback(_TASKS.discard)
     return {"run_id": run_id, "status": "queued"}
 
 

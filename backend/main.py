@@ -18,7 +18,6 @@ from backend.api import (
     uploads,
 )
 from backend.api.me import router as me_router
-from backend.settings import settings
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 

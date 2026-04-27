@@ -25,16 +25,19 @@
 --    ON CONFLICT DO NOTHING and DDL uses IF NOT EXISTS.
 --
 -- ============================================================================
--- BEFORE YOU RUN — replace these three values with literals.
+-- BEFORE YOU RUN — replace these three placeholders with literals.
 -- (Lakebase runs Postgres but the Databricks SQL editor doesn't always support
 --  psql ":var" substitution; safest is to find/replace the 3 placeholders.)
 -- ============================================================================
 --   <SEED_USER_EMAIL>    e.g. 'alice@customer.com'
 --   <SEED_USER_NAME>     e.g. 'Alice Customer'
 --   <APP_SP_CLIENT_ID>   e.g. '7d3b2a14-8b0a-4f9b-9b13-1a2f3c4d5e6f'
---                        (omit / comment out the GRANT block if you don't
---                         have it yet — the app's lifespan() can no-op if the
---                         schema already exists.)
+--                        Get this with:
+--                          databricks --profile <p> apps get velocia-newop-sdc -o json `
+--                            | ConvertFrom-Json | %{ $_.service_principal_client_id }
+--                        WITHOUT this GRANT, the app's `/api/me` and every
+--                        other endpoint will fail with `permission denied for
+--                        table users`.
 -- ============================================================================
 
 
@@ -140,25 +143,30 @@ CREATE INDEX IF NOT EXISTS ix_idempotency_keys_created_at
 
 
 -- ----------------------------------------------------------------------------
--- 2. Grant the app's service principal write access on schema public.
+-- 2. REQUIRED — grant the app's service principal access to schema public.
 --
--- Lakebase's default `public` schema doesn't allow non-superusers to create
--- objects. The app's SP isn't a superuser, so without these GRANTs the app's
--- init_db() would fail (or, if you ran the SQL above, the SP would still be
--- unable to read/write the tables).
+-- Tables created above are owned by whoever runs this script (you). The
+-- app's SP is a different Postgres role and, by default, has zero
+-- privileges on tables it didn't create. Without these GRANTs every
+-- request to the deployed app will fail with `permission denied for
+-- table users` (or similar).
 --
--- Replace <APP_SP_CLIENT_ID> with the value from
---   databricks apps get velocia-newop-sdc -o json | jq -r .service_principal_client_id
--- and uncomment the block.
+-- The GUID in double-quotes is the SP's `service_principal_client_id`.
+-- Postgres requires the quotes — role names with dashes/digits aren't
+-- valid unquoted identifiers.
+--
+-- Replace <APP_SP_CLIENT_ID> with the value from:
+--   databricks --profile <p> apps get velocia-newop-sdc -o json `
+--     | ConvertFrom-Json | %{ $_.service_principal_client_id }
 -- ----------------------------------------------------------------------------
 
--- GRANT USAGE, CREATE  ON SCHEMA public                  TO "<APP_SP_CLIENT_ID>";
--- GRANT ALL            ON ALL TABLES    IN SCHEMA public TO "<APP_SP_CLIENT_ID>";
--- GRANT ALL            ON ALL SEQUENCES IN SCHEMA public TO "<APP_SP_CLIENT_ID>";
--- ALTER DEFAULT PRIVILEGES IN SCHEMA public
---     GRANT ALL ON TABLES    TO "<APP_SP_CLIENT_ID>";
--- ALTER DEFAULT PRIVILEGES IN SCHEMA public
---     GRANT ALL ON SEQUENCES TO "<APP_SP_CLIENT_ID>";
+GRANT USAGE, CREATE  ON SCHEMA public                  TO "<APP_SP_CLIENT_ID>";
+GRANT ALL            ON ALL TABLES    IN SCHEMA public TO "<APP_SP_CLIENT_ID>";
+GRANT ALL            ON ALL SEQUENCES IN SCHEMA public TO "<APP_SP_CLIENT_ID>";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT ALL ON TABLES    TO "<APP_SP_CLIENT_ID>";
+ALTER DEFAULT PRIVILEGES IN SCHEMA public
+    GRANT ALL ON SEQUENCES TO "<APP_SP_CLIENT_ID>";
 
 
 -- ----------------------------------------------------------------------------

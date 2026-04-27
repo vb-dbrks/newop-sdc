@@ -104,6 +104,20 @@ resources:
             database_name: ${var.db_logical_name}
             permission: CAN_CONNECT_AND_CREATE
 
+scripts:
+  # `databricks bundle deploy` uploads the source files to the bundle path
+  # but does NOT auto-attach them to the app — that needs a separate
+  # `databricks apps deploy --source-code-path ...` call. We declare it
+  # here so users can run it cross-platform with `databricks bundle run
+  # deploy_app` instead of cobbling together a bash | python pipeline to
+  # discover their workspace email.
+  #
+  # Tracked upstream as databricks/cli#4181 — when fixed, this becomes a
+  # no-op and we can drop the script.
+  deploy_app:
+    content: |
+      databricks apps deploy ${var.app_name} --source-code-path /Workspace/Users/${workspace.current_user.userName}/.bundle/${bundle.name}/${bundle.target}/files
+
 targets:
   dev:
     mode: development

@@ -77,9 +77,7 @@ bundle-deploy: build
 	@echo ">>> Ensuring app compute is started..."
 	databricks --profile $(DBX_PROFILE) apps start $(APP_NAME) || true
 	@echo ">>> Pushing app source code from the bundle workspace path..."
-	@EMAIL=$$(databricks --profile $(DBX_PROFILE) current-user me -o json | python3 -c 'import json,sys; print(json.load(sys.stdin)["emails"][0]["value"])'); \
-	databricks --profile $(DBX_PROFILE) apps deploy $(APP_NAME) \
-		--source-code-path "/Workspace/Users/$$EMAIL/.bundle/velocia-newop-sdc/$(DBX_TARGET)/files"
+	databricks bundle run deploy_app -t $(DBX_TARGET) --profile $(DBX_PROFILE)
 
 bundle-destroy:
 	databricks bundle destroy -t $(DBX_TARGET) --profile $(DBX_PROFILE) --auto-approve

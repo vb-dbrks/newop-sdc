@@ -140,11 +140,10 @@ function Invoke-BundleDeploy {
     $LASTEXITCODE = 0
 
     Write-Host ">>> Pushing app source code from the bundle workspace path..."
-    $email = Get-WorkspaceEmail
-    $sourcePath = "/Workspace/Users/$email/.bundle/velocia-newop-sdc/$Target/files"
-    Write-Host "    source-code-path: $sourcePath"
-    databricks --profile $Profile apps deploy $AppName --source-code-path $sourcePath
-    Assert-LastExit "apps deploy"
+    # Delegates to the `scripts.deploy_app` block in databricks.yml so the
+    # source-code-path expansion happens in the CLI, not in this script.
+    databricks bundle run deploy_app -t $Target --profile $Profile
+    Assert-LastExit "bundle run deploy_app"
 }
 
 function Invoke-BundleDestroy {

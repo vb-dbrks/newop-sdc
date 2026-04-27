@@ -9,19 +9,27 @@ This is the implementation repo. The product, architecture, and ADRs live in `..
 
 ## Quick start (local dev)
 
-Prereqs: Python 3.11+, Node 20+, `uv` or `pip`, a Databricks workspace with a Lakebase Postgres available (or run with the bundled SQLite fallback for the very first boot).
+Prereqs: Python 3.12+, Node 20+, `uv` or `pip`, a Databricks workspace with a Lakebase Postgres available (or run with the bundled SQLite fallback for the very first boot).
 
 ```bash
 make install         # install backend + frontend deps
 make dev             # runs FastAPI on :8000 and Vite on :5173 (proxied)
-make migrate         # alembic upgrade head against $DATABASE_URL
 make test            # backend + frontend tests
+```
+
+**Windows users:** the project also ships `tasks.ps1`, a PowerShell wrapper that mirrors every Makefile target, so you don't need GNU Make:
+
+```powershell
+.\tasks.ps1 install
+.\tasks.ps1 build
+.\tasks.ps1 bundle-deploy -Profile <your-profile>
+.\tasks.ps1 help                    # full task list
 ```
 
 For local development without a real agent, start the bundled fake agent:
 
 ```bash
-make fake-agent      # FastAPI on :9000 mimicking the Agent API contract
+make fake-agent      # or: .\tasks.ps1 fake-agent  (FastAPI on :9000 mimicking the Agent API contract)
 ```
 
 ## Package registries

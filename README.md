@@ -96,7 +96,23 @@ The bundle does NOT create a Unity Catalog wrapping the Postgres database — th
 
 The app owns its own Postgres schema. `init_db()` runs `CREATE SCHEMA IF NOT EXISTS velocia AUTHORIZATION CURRENT_USER` before `Base.metadata.create_all`, which makes the app's service principal the schema owner. Result: every subsequent `CREATE TABLE` succeeds against the SP's own schema, and **no out-of-band `GRANT ... ON public TO <sp>` is ever needed** — the bundle's `CAN_CONNECT_AND_CREATE` resource permission gives the SP database-level CREATE, which is enough.
 
-If `SEED_ON_STARTUP=true` (set by default in `app.yaml`), the lifespan also inserts the dev fixture (1 user + 5 studies + author grants) right after `init_db()`. The user row uses `SEED_USER_EMAIL` / `SEED_USER_NAME`, so the customer's first SSO login lands on a populated dashboard.
+If `SEED_ON_STARTUP=true` (set by default in `app.yaml`), the lifespan also inserts the dev fixture (N users + 5 studies + per-user grants) right after `init_db()`. Two ways to configure who gets seeded:
+
+- **Single user** (default in `app.yaml`): set `SEED_USER_EMAIL` and `SEED_USER_NAME`. They're seeded as `author` on all 5 studies.
+- **Multiple users** (preferred when you want to verify the auth model): set `SEED_USERS` to a JSON array. Each entry is `{email, name, role?, studies?}` — `role` is `author` (default) or `reviewer`; `studies` is an optional list of `study_id` values controlling which fixture rows the user gets access to (omit / `null` = all 5). When `SEED_USERS` is set it overrides the singular vars.
+
+Example multi-user payload that exercises author + reviewer + a scope-limited user side by side:
+
+```json
+[
+  {"email": "alice@customer.com", "name": "Alice Author",   "role": "author"},
+  {"email": "bob@customer.com",   "name": "Bob Reviewer",   "role": "reviewer"},
+  {"email": "carol@customer.com", "name": "Carol Scoped",   "role": "author",
+   "studies": ["D9999C00001", "D9999C00002"]}
+]
+```
+
+After deploy, log in as each → Alice sees 5 studies, Bob sees 5 (read-only flows when those endpoints land), Carol sees 2 + 404s on the rest, demonstrating Layer 3 authorization end-to-end.
 
 ### Manual seeding (only when needed)
 

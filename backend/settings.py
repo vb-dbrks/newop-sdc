@@ -30,11 +30,24 @@ class Settings(BaseSettings):
 
     # --- Seed-on-startup (zero-touch first deploy) ---
     # When SEED_ON_STARTUP=true, the lifespan inserts the dev fixture
-    # (1 user + 5 study_documents + 5 author-role grants) right after
-    # init_db(). Idempotent — safe to leave on permanently. The user row
-    # uses SEED_USER_EMAIL / SEED_USER_NAME so the customer's own SSO
-    # login lands on a populated dashboard with no SQL editor work.
+    # (N users + 5 study_documents + per-user access grants) right after
+    # init_db(). Idempotent — safe to leave on permanently.
+    #
+    # SEED_USERS (preferred, multi-user) — JSON array. Each entry:
+    #   {
+    #     "email":   "<sso subject / email>",
+    #     "name":    "<display name>",
+    #     "role":    "author" | "reviewer",         # default: "author"
+    #     "studies": ["D9999C00001", ...] | null    # default: all 5
+    #   }
+    # Set as a single env var:
+    #   SEED_USERS='[{"email":"alice@x.com","name":"Alice","role":"author"},...]'
+    #
+    # SEED_USER_EMAIL / SEED_USER_NAME (legacy, single-user) — used only
+    # if SEED_USERS is not set. Equivalent to a one-element SEED_USERS list
+    # with role=author and studies=null.
     seed_on_startup: bool = False
+    seed_users: list[dict] | None = None
     seed_user_email: str | None = None
     seed_user_name: str | None = None
 

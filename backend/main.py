@@ -20,7 +20,7 @@ from backend.api import (
     uploads,
 )
 from backend.api.me import router as me_router
-from backend.db.seed import seed_default
+from backend.db.seed import seed_users
 from backend.db.session import SessionLocal, init_db
 from backend.middleware.idempotency import IdempotencyMiddleware
 from backend.middleware.security_headers import SecurityHeadersMiddleware
@@ -35,19 +35,25 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 async def lifespan(app: FastAPI):
     log_filter.install()
     await init_db()
-    if settings.seed_on_startup and settings.seed_user_email:
-        try:
-            async with SessionLocal() as session:
-                await seed_default(
-                    session,
-                    user_email=settings.seed_user_email,
-                    user_name=settings.seed_user_name or settings.seed_user_email,
+    if settings.seed_on_startup:
+        users = settings.seed_users
+        if not users and settings.seed_user_email:
+            users = [
+                {
+                    "email": settings.seed_user_email,
+                    "name": settings.seed_user_name or settings.seed_user_email,
+                    "role": "author",
+                }
+            ]
+        if users:
+            try:
+                async with SessionLocal() as session:
+                    await seed_users(session, users)
+            except Exception:  # seed must never block app startup
+                logger.exception(
+                    "Seed-on-startup failed; app will start anyway. "
+                    "Inspect logs and re-run scripts/seed_dev.py if needed."
                 )
-        except Exception:  # seed must never block app startup
-            logger.exception(
-                "Seed-on-startup failed; app will start anyway. "
-                "Inspect logs and re-run scripts/seed_dev.py if needed."
-            )
     yield
 
 

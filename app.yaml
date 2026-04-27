@@ -46,16 +46,32 @@ env:
   - name: DB_SCHEMA
     value: "velocia"
   # Zero-touch seed: when SEED_ON_STARTUP=true the lifespan inserts the dev
-  # fixture (1 user + 5 studies + 5 author grants) right after init_db. The
-  # SEED_USER_EMAIL row is what makes the dashboard non-empty for the first
-  # human who logs in via SSO. Idempotent — safe to leave on permanently.
-  # Edit the email/name to the customer's primary user before deploying.
+  # fixture (N users + 5 studies + per-user access grants) right after
+  # init_db. Idempotent — safe to leave on permanently.
   - name: SEED_ON_STARTUP
     value: "true"
+  # ---- Single-user seed (simplest case) ----
+  # Edit the email/name to the customer's primary user before deploying.
   - name: SEED_USER_EMAIL
     value: "dev.user@example.com"
   - name: SEED_USER_NAME
     value: "Dev User"
+  # ---- Multi-user seed (overrides SEED_USER_EMAIL when set) ----
+  # JSON array. Each entry: {email, name, role?, studies?}. Role is
+  # "author" (default) or "reviewer". `studies` is an optional list of
+  # study_id values (D9999C0000{1..5}) controlling which fixture rows
+  # the user gets access to — omit / null = all 5. Useful for testing
+  # the per-study authorization model with author + reviewer + a user
+  # with limited scope side by side.
+  #
+  # - name: SEED_USERS
+  #   value: |
+  #     [
+  #       {"email": "alice@customer.com", "name": "Alice Author",   "role": "author"},
+  #       {"email": "bob@customer.com",   "name": "Bob Reviewer",   "role": "reviewer"},
+  #       {"email": "carol@customer.com", "name": "Carol Scoped",   "role": "author",
+  #        "studies": ["D9999C00001", "D9999C00002"]}
+  #     ]
   # Inert defaults — the agent isn't wired up in this deploy yet, but settings.py
   # requires both to parse cleanly.
   - name: AGENT_API_BASE

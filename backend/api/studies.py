@@ -1,23 +1,31 @@
+"""Portfolio + study_document read endpoints.
+
+Schema: study_document is the umbrella; new_opportunity / study_design_concept /
+study_protocol are body tables. See ADR 0018 and 02-data-model.md.
+"""
+
 from fastapi import APIRouter, HTTPException, status
 
-router = APIRouter(prefix="/studies", tags=["studies"])
+router = APIRouter(prefix="/study-documents", tags=["study-documents"])
 
 
 @router.get("")
-async def list_studies(type: str | None = None, status_: str | None = None, q: str | None = None):
+async def list_study_documents(
+    document_type: str | None = None,
+    study_status: str | None = None,
+    q: str | None = None,
+):
+    """Portfolio table — rows from study_document with caller-visible filters."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
-@router.post("")
-async def create_study(payload: dict):
+@router.get("/{study_document_id}")
+async def get_study_document(study_document_id: str):
+    """Full document: umbrella + body row + sub-entities + open comment counts."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
-@router.get("/{study_id}")
-async def get_study(study_id: str):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
-
-
-@router.get("/{study_id}/documents")
-async def list_documents(study_id: str):
+@router.get("/{study_document_id}/versions")
+async def list_versions(study_document_id: str):
+    """List study_document_version snapshots."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)

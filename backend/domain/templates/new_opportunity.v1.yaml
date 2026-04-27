@@ -1,24 +1,32 @@
+# UI rendering hints for the New Opportunity form.
+# Schema source of truth is the `new_opportunity` body table — see ADR 0018 and 02-data-model.md.
+# `column` names below are the body-table columns the field renders / patches.
+
 type: new_opportunity
 version: 1
 sections:
   - id: strategic_context.identity
     label: Identity
     fields:
-      - { key: study_title,    label: STUDY TITLE,    type: textarea, required: true,  ordinal: 1 }
-      - { key: study_acronym,  label: STUDY ACRONYM,  type: text,     required: false, ordinal: 2 }
-      - { key: brand,          label: BRAND,          type: text,     required: false, ordinal: 3 }
-      - { key: therapeutic_area, label: THERAPEUTIC AREA, type: text, required: false, ordinal: 4 }
-      - { key: indication,     label: INDICATION,     type: text,     required: false, ordinal: 5 }
-      - { key: scientific_phase, label: SCIENTIFIC PHASE, type: checkbox_group, required: false, ordinal: 6,
-          options: [phase_3b, phase_4] }
-      - { key: study_type,     label: STUDY TYPE,     type: select,   required: false, ordinal: 7,
-          options: [interventional, non_interventional] }
+      - { key: study_title,          label: STUDY TITLE,        widget: textarea, column: study_brief_title,    required: true,  ordinal: 1 }
+      - { key: study_acronym,        label: STUDY ACRONYM,      widget: text,     column: study_acronym,        required: false, ordinal: 2 }
+      - { key: brand,                label: BRAND,              widget: text,     column: brand,                required: false, ordinal: 3 }
+      - { key: therapeutic_area,     label: THERAPEUTIC AREA,   widget: text,     column: therapeutic_area,     required: false, ordinal: 4 }
+      - { key: indication,           label: INDICATION,         widget: text,     column: indication,           required: false, ordinal: 5 }
+      - { key: scientific_phase,     label: SCIENTIFIC PHASE,   widget: text,     column: scientific_phase,     required: false, ordinal: 6 }
+      - { key: study_type,           label: STUDY TYPE,         widget: text,     column: study_type,           required: false, ordinal: 7,
+          parent_table: study_document }   # study_type lives on the umbrella, not the body
   - id: strategic_context.strategic_intent
     label: Strategic Intent
     fields:
-      - { key: strategic_intent,  label: STRATEGIC INTENT,  type: textarea, required: true, ordinal: 1 }
-      - { key: target_evidence_gap, label: TARGET EVIDENCE GAP, type: textarea, required: false, ordinal: 2 }
+      - { key: strategic_intent,         label: STRATEGIC INTENT,         widget: textarea, column: strategic_intent,         required: true,  ordinal: 1 }
+      - { key: target_evidence_gap,      label: TARGET EVIDENCE GAP,      widget: textarea, column: target_evidence_gap,      required: false, ordinal: 2 }
+      - { key: differentiation,          label: DIFFERENTIATION,          widget: textarea, column: differentiation_from_competition, required: false, ordinal: 3 }
+      - { key: scientific_rationale,     label: SCIENTIFIC RATIONALE,     widget: textarea, column: scientific_rationale,     required: false, ordinal: 4 }
   - id: strategic_context.study_core
     label: Study Core
     fields:
-      - { key: study_core_summary, label: STUDY CORE SUMMARY, type: textarea, required: false, ordinal: 1 }
+      - { key: primary_objective,    label: PRIMARY OBJECTIVE,    widget: textarea, column: primary_objective,    required: false, ordinal: 1 }
+      - { key: secondary_objectives, label: SECONDARY OBJECTIVES, widget: textarea, column: secondary_objectives, required: false, ordinal: 2 }
+      - { key: core_hypothesis,      label: CORE HYPOTHESIS,      widget: textarea, column: core_hypothesis,      required: false, ordinal: 3 }
+      - { key: secondary_hypothesis, label: SECONDARY HYPOTHESIS, widget: textarea, column: secondary_hypothesis, required: false, ordinal: 4 }

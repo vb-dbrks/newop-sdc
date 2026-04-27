@@ -24,6 +24,19 @@ For local development without a real agent, start the bundled fake agent:
 make fake-agent      # FastAPI on :9000 mimicking the Agent API contract
 ```
 
+## Package registries: internal proxy vs public
+
+The frontend ships with `frontend/.npmrc` setting `replace-registry-host=always` (no pinned registry). This makes **one `package-lock.json` work in both environments** without any workflow changes:
+
+- **Internal (Databricks laptops behind the firewall):** your `~/.npmrc` already points at the corporate proxy (`https://npm-proxy.dev.databricks.com/`). npm uses the proxy as usual; lock-file URLs get rewritten to proxy host on the fly.
+- **GitHub Actions / external CI:** no `~/.npmrc`, so npm uses its built-in public registry (`https://registry.npmjs.org/`). Lock-file URLs (which carry the proxy host from internal `npm install`) get rewritten to public on the fly.
+
+For Python:
+- **Internal:** your `~/.pip/pip.conf` already points at the corporate PyPI mirror; nothing to do.
+- **CI:** uses public PyPI by default.
+
+pip doesn't capture URLs in a lock file the way npm does, so the npm trick isn't needed there. If we ever pin transitive deps with `uv lock` / `pip-tools`, we'll add a similar override.
+
 ## Layout
 
 ```

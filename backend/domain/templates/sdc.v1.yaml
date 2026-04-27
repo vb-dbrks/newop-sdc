@@ -1,34 +1,66 @@
+# UI rendering hints for the SDC document.
+# Schema source of truth is the `study_design_concept` body table + sub-entities
+# (`sdc_statistical_methods`, `sdc_milestone`, `sdc_ops_item`). See ADR 0018.
+
 type: sdc
 version: 1
 toc:
-  - { id: study_details,            label: Study Details }
-  - { id: rationale,                label: "1. Rationale" }
-  - { id: objectives_hypotheses,    label: "2. Objectives and Hypotheses" }
-  - { id: methodology,              label: "3. Methodology" }
-  - { id: methodology.study_design, label: "3.1 Study Design" }
+  - { id: study_details,                label: Study Details }
+  - { id: rationale,                    label: "1. Rationale" }
+  - { id: objectives_hypotheses,        label: "2. Objectives and Hypotheses" }
+  - { id: methodology,                  label: "3. Methodology" }
+  - { id: methodology.study_design,     label: "3.1 Study Design" }
   - { id: methodology.study_population, label: "3.2 Study Population" }
-  - { id: methodology.inclusion,    label: "3.2.1 Inclusion Criteria" }
-  - { id: methodology.exclusion,    label: "3.2.2 Exclusion Criteria" }
-  - { id: methodology.data_source,  label: "3.3 Data Source" }
-  - { id: methodology.assessments,  label: "3.4 Study Assessments / Variables and Epidemiological Methods" }
-  - { id: methodology.limitations,  label: "3.5 Study Limitations" }
-  - { id: stats,                    label: "4. Statistical Methods" }
-  - { id: stats.power,              label: "4.1 Sample Size and Statistical Power; Precision Assessment" }
-  - { id: stats.considerations,     label: "4.2 Statistical Considerations" }
-  - { id: timelines,                label: "5. Timelines and Operational Information" }
-  - { id: references,               label: "6. References" }
+  - { id: methodology.inclusion,        label: "3.2.1 Inclusion Criteria" }
+  - { id: methodology.exclusion,        label: "3.2.2 Exclusion Criteria" }
+  - { id: methodology.data_source,      label: "3.3 Data Source" }
+  - { id: methodology.assessments,      label: "3.4 Study Assessments" }
+  - { id: methodology.limitations,      label: "3.5 Study Limitations" }
+  - { id: stats,                        label: "4. Statistical Methods" }
+  - { id: stats.power,                  label: "4.1 Sample Size and Statistical Power" }
+  - { id: stats.considerations,         label: "4.2 Statistical Considerations" }
+  - { id: timelines,                    label: "5. Timelines and Operational Information" }
+  - { id: references,                   label: "6. References" }
 sections:
   - id: study_details
     label: Study Details
     fields:
-      - { key: study_code,        label: STUDY CODE,        type: text,     required: true,  ordinal: 1 }
-      - { key: owner,             label: OWNER,             type: text,     required: false, ordinal: 2 }
-      - { key: study_title,       label: STUDY TITLE,       type: textarea, required: true,  ordinal: 3 }
-      - { key: description,       label: DESCRIPTION,       type: textarea, required: true,  ordinal: 4 }
-      - { key: acronym,           label: ACRONYM,           type: text,     required: false, ordinal: 5 }
-      - { key: treatment,         label: TREATMENT,         type: text,     required: false, ordinal: 6 }
-      - { key: indications,       label: INDICATION(S),     type: textarea, required: false, ordinal: 7 }
-      - { key: intervention_model, label: INTERVENTION MODEL, type: text,   required: false, ordinal: 8 }
-      - { key: study_type,        label: STUDY TYPE,        type: text,     required: false, ordinal: 9 }
-      - { key: leading_team,      label: AZ TEAM/FUNCTION LEADING STUDY, type: text, required: false, ordinal: 10 }
-  # Remaining sections (rationale, objectives, methodology, ...) to be filled in once their field shape is captured.
+      - { key: study_name,               label: STUDY NAME,             widget: textarea, column: study_name,           required: true,  ordinal: 1 }
+      - { key: study_type,               label: STUDY TYPE,             widget: text,     column: study_type,           required: false, ordinal: 2 }
+      - { key: indication,               label: INDICATION(S),          widget: text,     column: indication,           required: false, ordinal: 3 }
+      - { key: therapeutic_area,         label: THERAPEUTIC AREA,       widget: text,     column: therapeutic_area,     required: false, ordinal: 4 }
+      - { key: brand_name,               label: BRAND,                  widget: text,     column: brand_name,           required: false, ordinal: 5 }
+      - { key: lead_az_team_name,        label: AZ TEAM/FUNCTION,       widget: text,     column: lead_az_team_name,    required: false, ordinal: 6 }
+  - id: rationale
+    label: "1. Rationale"
+    fields:
+      - { key: study_rationale,          label: STUDY RATIONALE,        widget: textarea, column: study_rationale,      required: false, ordinal: 1 }
+  - id: objectives_hypotheses
+    label: "2. Objectives and Hypotheses"
+    fields:
+      - { key: primary_objective,        label: PRIMARY OBJECTIVE,      widget: textarea, column: primary_objective,    required: false, ordinal: 1 }
+      - { key: secondary_objectives,     label: SECONDARY OBJECTIVES,   widget: textarea, column: secondary_objectives, required: false, ordinal: 2 }
+      - { key: core_hypothesis,          label: CORE HYPOTHESIS,        widget: textarea, column: core_hypothesis,      required: false, ordinal: 3 }
+      - { key: secondary_hypothesis,     label: SECONDARY HYPOTHESIS,   widget: textarea, column: secondary_hypothesis, required: false, ordinal: 4 }
+      - { key: exploratory_objective,    label: EXPLORATORY OBJECTIVE,  widget: textarea, column: exploratory_objective, required: false, ordinal: 5 }
+      - { key: safety_objective,         label: SAFETY OBJECTIVE,       widget: textarea, column: safety_objective,     required: false, ordinal: 6 }
+      - { key: safety_hypothesis,        label: SAFETY HYPOTHESIS,      widget: textarea, column: safety_hypothesis,    required: false, ordinal: 7 }
+  - id: stats.power
+    label: "4.1 Sample Size and Statistical Power"
+    fields:
+      - { key: study_design_type,        label: STUDY DESIGN TYPE,      widget: text,     parent_table: sdc_statistical_methods, column: study_design_type,   required: false, ordinal: 1 }
+      - { key: comparator_type,          label: COMPARATOR TYPE,        widget: text,     parent_table: sdc_statistical_methods, column: comparator_type,     required: false, ordinal: 2 }
+      - { key: overall_sample_size,      label: OVERALL SAMPLE SIZE,    widget: number,   parent_table: sdc_statistical_methods, column: overall_sample_size, required: false, ordinal: 3 }
+      - { key: allocation_ratio,         label: ALLOCATION RATIO,       widget: text,     parent_table: sdc_statistical_methods, column: allocation_ratio,    required: false, ordinal: 4 }
+      - { key: power,                    label: POWER,                  widget: number,   parent_table: sdc_statistical_methods, column: power,               required: false, ordinal: 5 }
+      - { key: type_one_error,           label: TYPE I ERROR,           widget: number,   parent_table: sdc_statistical_methods, column: type_one_error,      required: false, ordinal: 6 }
+      - { key: type_two_error,           label: TYPE II ERROR,          widget: number,   parent_table: sdc_statistical_methods, column: type_two_error,      required: false, ordinal: 7 }
+  - id: timelines
+    label: "5. Timelines and Operational Information"
+    repeating:
+      parent_table: sdc_milestone
+      fields:
+        - { key: milestone_name, label: MILESTONE,    widget: text, column: milestone_name }
+        - { key: target_date,    label: TARGET DATE,  widget: date, column: target_date }
+  # Remaining sections (methodology subsections, references, etc.) to be filled in
+  # as those parts of the Figma prototype get captured.

@@ -1,3 +1,5 @@
+"""ENUMs aligned with the IA Velocia Application Data Model (v2). See ADR 0018."""
+
 from enum import StrEnum
 
 
@@ -7,31 +9,64 @@ class DocumentType(StrEnum):
     PROTOCOL = "protocol"
 
 
-class DocumentStatus(StrEnum):
+class StudyStatus(StrEnum):
+    """study_document.study_status — TBD with IA, assumed enum."""
+
     DRAFT = "draft"
     IN_REVIEW = "in_review"
     APPROVED = "approved"
 
 
-class StudyRole(StrEnum):
+class StudyAccessRole(StrEnum):
     AUTHOR = "author"
     REVIEWER = "reviewer"
 
 
-class FieldType(StrEnum):
-    TEXT = "text"
-    TEXTAREA = "textarea"
-    SELECT = "select"
-    MULTISELECT = "multiselect"
-    CHECKBOX_GROUP = "checkbox_group"
-    NUMBER = "number"
+class CriteriaType(StrEnum):
+    INCLUSION = "inclusion"
+    EXCLUSION = "exclusion"
 
 
-class ValueOrigin(StrEnum):
-    AGENT_GENERATED = "agent_generated"
-    AGENT_ENHANCED = "agent_enhanced"
-    USER_EDIT = "user_edit"
-    USER_INITIAL = "user_initial"
+class SourceDocumentSourceType(StrEnum):
+    USER_UPLOAD = "user_upload"
+    REFERENCE = "reference"
+    GENERATED = "generated"
+
+
+class IngestionStatus(StrEnum):
+    UPLOADED = "uploaded"
+    QUEUED = "queued"
+    INDEXED = "indexed"
+    FAILED = "failed"
+
+
+class CommentStatus(StrEnum):
+    OPEN = "open"
+    RESOLVED = "resolved"
+
+
+class AuditAction(StrEnum):
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    SUBMIT = "submit"
+    APPROVE = "approve"
+    REQUEST_CHANGES = "request_changes"
+    PUBLISH = "publish"
+    ENHANCE = "enhance"
+    REVERT = "revert"
+
+
+class ReviewDecision(StrEnum):
+    APPROVED = "approved"
+    CHANGES_REQUESTED = "changes_requested"
+
+
+class VersionTrigger(StrEnum):
+    SUBMIT = "submit"
+    APPROVE = "approve"
+    REQUEST_CHANGES = "request_changes"
+    MANUAL = "manual"
 
 
 class AgentRunKind(StrEnum):
@@ -46,23 +81,6 @@ class AgentRunStatus(StrEnum):
     SUCCEEDED = "succeeded"
     FAILED = "failed"
     CANCELLED = "cancelled"
-
-
-class IngestionStatus(StrEnum):
-    UPLOADED = "uploaded"
-    QUEUED = "queued"
-    INDEXED = "indexed"
-    FAILED = "failed"
-
-
-class ReviewDecision(StrEnum):
-    APPROVED = "approved"
-    CHANGES_REQUESTED = "changes_requested"
-
-
-class ThreadStatus(StrEnum):
-    OPEN = "open"
-    RESOLVED = "resolved"
 
 
 class NotificationKind(StrEnum):

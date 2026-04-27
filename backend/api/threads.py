@@ -1,23 +1,21 @@
+"""Comments — review_comment + comment_audit_bridge per IA v2 (no separate threads table)."""
+
 from fastapi import APIRouter, HTTPException, status
 
-router = APIRouter(tags=["threads"])
+router = APIRouter(tags=["comments"])
 
 
-@router.get("/documents/{document_id}/threads")
-async def list_threads(document_id: str, status_: str | None = None):
+@router.get("/study-documents/{study_document_id}/comments")
+async def list_comments(study_document_id: str, status_: str | None = None):
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
-@router.post("/documents/{document_id}/threads")
-async def open_thread(document_id: str, payload: dict):
+@router.post("/study-documents/{study_document_id}/comments")
+async def add_comment(study_document_id: str, payload: dict):
+    """Insert review_comment + audit_log + comment_audit_bridge in one tx."""
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
 
 
-@router.post("/threads/{thread_id}/comments")
-async def add_comment(thread_id: str, payload: dict):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)
-
-
-@router.post("/threads/{thread_id}:resolve")
-async def resolve_thread(thread_id: str):
+@router.post("/comments/{comment_id}:resolve")
+async def resolve_comment(comment_id: str):
     raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED)

@@ -1,16 +1,11 @@
-from typing import Annotated
+from fastapi import APIRouter
 
-from fastapi import APIRouter, Depends
-
-from backend.auth.sso import CurrentUser, current_user
+from backend.auth.sso import CurrentUserRowDep
+from backend.domain.schemas import MeResponse
 
 router = APIRouter(tags=["me"])
 
 
-@router.get("/me")
-async def me(user: Annotated[CurrentUser, Depends(current_user)]) -> dict[str, str]:
-    return {
-        "sso_subject": user.sso_subject,
-        "email": user.email,
-        "display_name": user.display_name,
-    }
+@router.get("/me", response_model=MeResponse)
+async def me(user: CurrentUserRowDep) -> MeResponse:
+    return MeResponse.model_validate(user)

@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from backend import log_filter
 from backend.api import (
     agent_runs,
     documents,
@@ -18,16 +19,23 @@ from backend.api import (
     uploads,
 )
 from backend.api.me import router as me_router
+from backend.db.session import init_db
+from backend.middleware.idempotency import IdempotencyMiddleware
+from backend.middleware.security_headers import SecurityHeadersMiddleware
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    log_filter.install()
+    await init_db()
     yield
 
 
 app = FastAPI(title="Velocia App", version="0.1.0", lifespan=lifespan)
+app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(IdempotencyMiddleware)
 
 
 @app.get("/healthz")

@@ -26,6 +26,7 @@ yarn-error.log*
 # Build outputs
 frontend/dist/
 backend/static/
+frontend/tsconfig.tsbuildinfo
 
 # IDE / OS
 .vscode/

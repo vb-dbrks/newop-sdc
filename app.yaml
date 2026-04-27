@@ -1,31 +1,50 @@
-# Databricks App configuration for Velocia.
-# Reference: https://docs.databricks.com/dev-tools/databricks-apps/
+# Databricks App runtime config for the Velocia App.
+#
+# This is consumed by the Databricks Apps runtime (NOT the bundle). The bundle
+# (databricks.yml) provisions the Lakebase instance and binds it as an app
+# resource named "database", which causes the runtime to inject PGHOST, PGPORT,
+# PGUSER, PGDATABASE, PGSSLMODE, PGAPPNAME into the app's env.
+#
+# Notably, the runtime does NOT inject a static PGPASSWORD — the Postgres
+# password is a short-lived OAuth token that backend/db/session.py mints via
+# WorkspaceClient.database.generate_database_credential() on each new physical
+# pool connection. So this command builds a credential-free DATABASE_URL and
+# lets SQLAlchemy + asyncpg pick up user/password from connect_args.
+#
+# We bind uvicorn to $DATABRICKS_APP_PORT (the runtime-assigned port; never
+# hardcode 8000 in production).
+#
+# `value:` substitution does NOT expand ${VAR} at runtime — that's why we
+# go through bash -lc instead of trying to put ${PGHOST} inside a value.
 
 command:
-  - "uvicorn"
-  - "backend.main:app"
-  - "--host"
-  - "0.0.0.0"
-  - "--port"
-  - "8000"
+  - "bash"
+  - "-lc"
+  - |
+    set -euo pipefail
+    # Databricks Apps inject PG{HOST,PORT,USER,DATABASE,SSLMODE,APPNAME} when a
+    # database resource is bound, but NOT a static password. The password is a
+    # short-lived OAuth token minted from the app's service principal (the
+    # default SDK auth chain picks up DATABRICKS_CLIENT_ID/_CLIENT_SECRET in
+    # the runtime). We mint it once at process start and stick it on the
+    # async engine; backend/db/session.py refreshes it before each connect via
+    # an asyncpg "connect_args" callable.
+    export DATABASE_URL="postgresql+asyncpg://${PGHOST}:${PGPORT}/${PGDATABASE}?ssl=require"
+    exec uvicorn backend.main:app --host 0.0.0.0 --port "${DATABRICKS_APP_PORT}"
 
 env:
-  - name: DATABASE_URL
-    valueFrom: "velocia-lakebase-url"        # Databricks secret reference
-  - name: AGENT_API_BASE
-    value: "https://<workspace>/serving-endpoints/velocia-agent/invocations"
-  - name: AGENT_API_TOKEN
-    valueFrom: "velocia-agent-token"
-  - name: VOLUME_ROOT
-    value: "/Volumes/main/velocia/uploads"
   - name: LOG_LEVEL
     value: "INFO"
-
-# Resources required by the app. Provisioned out-of-band; referenced by name.
-resources:
-  - name: lakebase
-    description: "Lakebase Postgres for Velocia OLTP"
-  - name: agent-endpoint
-    description: "Velocia Agent serving endpoint"
-  - name: volume
-    description: "Volume root for user-uploaded documents"
+  # backend/db/session.py uses this to scope generate_database_credential() —
+  # Lakebase tokens are per-instance. Must match resources.database_instances.velocia_db
+  # in databricks.yml.
+  - name: DATABRICKS_DATABASE_INSTANCE_NAME
+    value: "velocia-newop-sdc-db"
+  # Inert defaults — the agent isn't wired up in this deploy yet, but settings.py
+  # requires both to parse cleanly.
+  - name: AGENT_API_BASE
+    value: "http://localhost:9000"
+  - name: AGENT_API_TOKEN
+    value: "unset-no-agent-bound-yet"
+  - name: VOLUME_ROOT
+    value: "/Volumes/main/velocia/uploads"

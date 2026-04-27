@@ -1,0 +1,98 @@
+# Databricks Asset Bundle for the Velocia App.
+#
+# Single source of truth for: the FastAPI app on Databricks Apps, the Lakebase
+# Postgres instance + database it talks to, env wiring, and sync rules.
+#
+# Workflow:
+#   databricks bundle validate -t dev --profile fieldeng
+#   databricks bundle deploy   -t dev --profile fieldeng
+#   databricks bundle destroy  -t dev --profile fieldeng -y
+#
+# Resource model:
+#   - resources.database_instances.velocia_db        — Lakebase Postgres instance
+#   - resources.database_catalogs.velocia_db_catalog — UC catalog wrapping the Postgres database
+#   - resources.apps.velocia                         — the Databricks App, bound to the database
+#
+# Schema is auto-created at app startup via SQLAlchemy `Base.metadata.create_all`
+# (see backend/db/session.py:init_db). No Alembic.
+
+bundle:
+  name: velocia-newop-sdc
+  # Use the direct engine to skip the Terraform download (whose GPG key is
+  # currently expired in this CLI version's pin) and to get faster, narrower
+  # state semantics. See https://docs.databricks.com/dev-tools/bundles/.
+  engine: direct
+
+variables:
+  app_name:
+    description: "Databricks App name (must be unique in the workspace)."
+    default: velocia-newop-sdc
+  db_instance_name:
+    description: "Lakebase Postgres instance name."
+    default: velocia-newop-sdc-db
+  db_logical_name:
+    description: "Logical Postgres database name inside the instance."
+    default: velocia
+  uc_catalog_name:
+    description: "Unity Catalog name that wraps the Postgres database."
+    default: velocia_newop_sdc
+
+# Files to ship to the workspace deployment root. The app's source_code_path
+# is the bundle root, so frontend/dist must be present (it's the SPA bundle the
+# FastAPI app serves at /). node_modules and .venv must NOT be shipped.
+sync:
+  include:
+    - frontend/dist/**
+  exclude:
+    - .venv/**
+    - venv/**
+    - "**/__pycache__/**"
+    - "**/.pytest_cache/**"
+    - "**/.ruff_cache/**"
+    - "**/.mypy_cache/**"
+    - "**/*.egg-info/**"
+    - frontend/node_modules/**
+    - frontend/.vite/**
+    - local.db
+    - local.db-journal
+    - .env
+    - .env.local
+    - .DS_Store
+    - "**/.DS_Store"
+    - .git/**
+    - .github/**
+    - tests/**
+
+resources:
+  database_instances:
+    velocia_db:
+      name: ${var.db_instance_name}
+      capacity: CU_1
+      node_count: 1
+
+  database_catalogs:
+    velocia_db_catalog:
+      name: ${var.uc_catalog_name}
+      database_instance_name: ${resources.database_instances.velocia_db.name}
+      database_name: ${var.db_logical_name}
+      create_database_if_not_exists: true
+
+  apps:
+    velocia:
+      name: ${var.app_name}
+      description: "Velocia — clinical study authoring (New Opportunity / SDC / Protocol)."
+      source_code_path: .
+      resources:
+        - name: database
+          description: "Lakebase Postgres for OLTP (users, study_documents, audit_log, ...)."
+          database:
+            instance_name: ${resources.database_instances.velocia_db.name}
+            database_name: ${var.db_logical_name}
+            permission: CAN_CONNECT_AND_CREATE
+
+targets:
+  dev:
+    mode: development
+    default: true
+    workspace:
+      host: https://adb-984752964297111.11.azuredatabricks.net

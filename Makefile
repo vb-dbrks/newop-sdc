@@ -79,7 +79,7 @@ bundle-deploy: build
 	@echo ">>> Ensuring app compute is started..."
 	-databricks --profile $(DBX_PROFILE) apps start $(APP_NAME)
 	@echo ">>> Pushing app source code from the bundle workspace path..."
-	databricks bundle run deploy_app -t $(DBX_TARGET) --profile $(DBX_PROFILE)
+	python scripts/deploy_app.py --profile $(DBX_PROFILE) --target $(DBX_TARGET) --app $(APP_NAME)
 
 bundle-destroy:
 	databricks bundle destroy -t $(DBX_TARGET) --profile $(DBX_PROFILE) --auto-approve

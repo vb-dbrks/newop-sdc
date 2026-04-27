@@ -47,10 +47,8 @@ import os
 import subprocess
 import sys
 import uuid
-from typing import Any
 
 import asyncpg  # type: ignore[import-not-found]
-
 
 SEED_USER_EMAIL = os.environ.get("SEED_USER_EMAIL", "dev.user@example.com")
 SEED_USER_NAME = os.environ.get("SEED_USER_NAME", "Dev User")
@@ -150,10 +148,8 @@ def _discover_app_db(app_name: str, profile: str | None) -> dict[str, str]:
     data = json.loads(out)
     sp_client_id = data.get("service_principal_client_id", "") or ""
     # Walk the active deployment's resources to find one of kind 'database'.
-    deployment = data.get("active_deployment") or data.get("pending_deployment") or {}
-    spec = (deployment.get("deployment_artifacts") or {}).get("source_code_path", "")
-    # The full app object also has the resources list under app_status / resources
-    # in newer schemas; fall back to scanning the whole blob for instance_name + database_name.
+    # The app object's resources list is the canonical place to look for
+    # the bound database (instance_name + database_name).
     resources = data.get("resources") or []
     for r in resources:
         db = r.get("database")

@@ -17,19 +17,12 @@ make dev             # runs FastAPI on :8000 and Vite on :5173 (proxied)
 make test            # backend + frontend tests
 ```
 
-**Windows users:** the project also ships `tasks.ps1`, a PowerShell wrapper that mirrors every Makefile target, so you don't need GNU Make:
-
-```powershell
-.\tasks.ps1 install
-.\tasks.ps1 build
-.\tasks.ps1 bundle-deploy -Profile <your-profile>
-.\tasks.ps1 help                    # full task list
-```
+**Windows users:** install GNU make once (`winget install ezwinports.make` or `choco install make`); the Makefile is written to be portable (no `rm` / `find` / bash-only constructs) so the same targets work under cmd.exe, PowerShell, and POSIX shells.
 
 For local development without a real agent, start the bundled fake agent:
 
 ```bash
-make fake-agent      # or: .\tasks.ps1 fake-agent  (FastAPI on :9000 mimicking the Agent API contract)
+make fake-agent      # FastAPI on :9000 mimicking the Agent API contract
 ```
 
 ## Package registries

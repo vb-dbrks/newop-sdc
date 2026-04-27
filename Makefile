@@ -6,6 +6,10 @@ DBX_PROFILE ?= DEFAULT
 DBX_TARGET  ?= dev
 APP_NAME    ?= velocia-newop-sdc
 
+# Recipes use plain `python -c "..."` for filesystem ops instead of rm/find,
+# so the Makefile works under both POSIX shells and Windows cmd.exe (with
+# GNU make installed via `winget install ezwinports.make` or chocolatey).
+
 help:
 	@echo "make install         - install backend + frontend deps"
 	@echo "make dev             - run backend (8000) + frontend (5173) (separate terminals)"
@@ -45,8 +49,7 @@ build:
 	cd frontend && npm run build
 
 db-reset:
-	rm -f local.db
-	@echo "local.db removed; next backend start will recreate the schema via init_db()."
+	python -c "from pathlib import Path; Path('local.db').unlink(missing_ok=True); print('local.db removed; next backend start will recreate the schema via init_db().')"
 
 test: test-backend
 
@@ -64,8 +67,7 @@ fake-agent:
 	uvicorn tests.backend.fake_agent:app --host 0.0.0.0 --port 9000
 
 clean:
-	rm -rf frontend/dist .pytest_cache .ruff_cache .mypy_cache
-	find . -name "__pycache__" -type d -exec rm -rf {} +
+	python -c "import shutil, pathlib; [shutil.rmtree(p, ignore_errors=True) for p in ['frontend/dist', '.pytest_cache', '.ruff_cache', '.mypy_cache']]; [shutil.rmtree(p, ignore_errors=True) for p in pathlib.Path('.').rglob('__pycache__')]"
 
 # --- Databricks Asset Bundle ---
 
@@ -75,7 +77,7 @@ bundle-validate:
 bundle-deploy: build
 	databricks bundle deploy -t $(DBX_TARGET) --profile $(DBX_PROFILE)
 	@echo ">>> Ensuring app compute is started..."
-	databricks --profile $(DBX_PROFILE) apps start $(APP_NAME) || true
+	-databricks --profile $(DBX_PROFILE) apps start $(APP_NAME)
 	@echo ">>> Pushing app source code from the bundle workspace path..."
 	databricks bundle run deploy_app -t $(DBX_TARGET) --profile $(DBX_PROFILE)
 
@@ -89,12 +91,13 @@ app-status:
 	databricks --profile $(DBX_PROFILE) apps get $(APP_NAME)
 
 app-logs:
-	@# `apps logs` requires OAuth (PAT-based profiles fail with 'OAuth Token not supported').
-	@# We'll try the canonical profile first and fall back to opening the /logz URL.
-	databricks --profile $(DBX_PROFILE)-oauth apps logs $(APP_NAME) --tail-lines 200 \
-		2>/dev/null \
-		|| echo "Run-time logs: $$(databricks --profile $(DBX_PROFILE) apps get $(APP_NAME) --output json | python -c 'import json,sys;print(json.load(sys.stdin)[\"url\"])')/logz"
+	@# `apps logs` requires OAuth (PAT-based profiles fail with 'OAuth Token
+	@# not supported'). Try the canonical -oauth sibling first; if that fails
+	@# print the /logz URL the user can open in a browser. Implemented in
+	@# Python so the same line works on Windows cmd.exe and POSIX shells.
+	-databricks --profile $(DBX_PROFILE)-oauth apps logs $(APP_NAME) --tail-lines 200
+	@python -c "import json, subprocess; out = subprocess.check_output(['databricks', '--profile', '$(DBX_PROFILE)', 'apps', 'get', '$(APP_NAME)', '--output', 'json']); print('Run-time logs:', json.loads(out)['url'] + '/logz')"
 
 app-restart:
-	databricks --profile $(DBX_PROFILE) apps stop $(APP_NAME) || true
+	-databricks --profile $(DBX_PROFILE) apps stop $(APP_NAME)
 	databricks --profile $(DBX_PROFILE) apps start $(APP_NAME)

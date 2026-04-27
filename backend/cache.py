@@ -1,6 +1,5 @@
 """Async TTL cache with single-flight protection.
 
-Modelled on the DQX app's `cache.py` (see Field Engineering's DQX repo).
 Pure stdlib — no third-party cache libraries.
 
 Usage:

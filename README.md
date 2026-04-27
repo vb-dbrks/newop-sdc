@@ -24,18 +24,13 @@ For local development without a real agent, start the bundled fake agent:
 make fake-agent      # FastAPI on :9000 mimicking the Agent API contract
 ```
 
-## Package registries: internal proxy vs public
+## Package registries
 
-The frontend ships with `frontend/.npmrc` setting `replace-registry-host=always` (no pinned registry). This makes **one `package-lock.json` work in both environments** without any workflow changes:
+The frontend ships with `frontend/.npmrc` setting `replace-registry-host=always` (no pinned registry). This makes **one `package-lock.json` work in any environment** without workflow changes: npm fetches from whichever registry your `~/.npmrc` (or `npm_config_registry`) points at, and `resolved` URLs in the lockfile get rewritten to that host on the fly. If you have no `~/.npmrc`, npm uses its built-in public registry (`https://registry.npmjs.org/`).
 
-- **Internal (Databricks laptops behind the firewall):** your `~/.npmrc` already points at the corporate proxy (`https://npm-proxy.dev.databricks.com/`). npm uses the proxy as usual; lock-file URLs get rewritten to proxy host on the fly.
-- **GitHub Actions / external CI:** no `~/.npmrc`, so npm uses its built-in public registry (`https://registry.npmjs.org/`). Lock-file URLs (which carry the proxy host from internal `npm install`) get rewritten to public on the fly.
+This pattern is useful if some developers sit behind a corporate npm proxy and CI uses public npm — both work from the same lockfile.
 
-For Python:
-- **Internal:** your `~/.pip/pip.conf` already points at the corporate PyPI mirror; nothing to do.
-- **CI:** uses public PyPI by default.
-
-pip doesn't capture URLs in a lock file the way npm does, so the npm trick isn't needed there. If we ever pin transitive deps with `uv lock` / `pip-tools`, we'll add a similar override.
+For Python: pip doesn't capture URLs in a lock file the way npm does, so the trick isn't needed. If you later pin transitive deps with `uv lock` / `pip-tools`, add a similar override.
 
 ## Layout
 
@@ -54,14 +49,19 @@ Scaffold. Most endpoints return `501 Not Implemented` and most components are st
 
 ## Deploy to Databricks
 
-Everything (the FastAPI app on Databricks Apps and the Lakebase Postgres it talks to) is described by `databricks.yml` at the repo root. There is no manual click-through step. The default target is `dev`, pointing at the field-eng workspace via the `fieldeng` CLI profile.
+Everything (the FastAPI app on Databricks Apps and the Lakebase Postgres it talks to) is described by `databricks.yml` at the repo root. There is no manual click-through step.
+
+Before you deploy, set:
+
+1. **Workspace host** — edit `targets.dev.workspace.host` in `databricks.yml`.
+2. **CLI profile** — set `DBX_PROFILE` (Makefile var) to your Databricks CLI profile name, or pass `--profile <name>` directly.
 
 ```bash
-make build                 # populate frontend/dist (the SPA bundle the app serves)
-make bundle-validate       # databricks bundle validate -t dev --profile fieldeng
-make bundle-deploy         # provisions Lakebase + app and deploys code
-make seed-dev              # idempotent: 1 user + 5 study_documents + access grants
-make bundle-destroy        # tear it all down
+make build                                       # populate frontend/dist (the SPA bundle the app serves)
+make bundle-validate DBX_PROFILE=<your-profile>  # databricks bundle validate -t dev
+make bundle-deploy   DBX_PROFILE=<your-profile>  # provisions Lakebase + app and deploys code
+make seed-dev        DBX_PROFILE=<your-profile>  # idempotent: 1 user + 5 study_documents + access grants
+make bundle-destroy  DBX_PROFILE=<your-profile>  # tear it all down
 ```
 
 After `bundle-deploy`, the app URL follows the pattern:
@@ -89,8 +89,8 @@ https://velocia-newop-sdc-<workspace-id>.azure.databricksapps.com
 ### Day-2 ops
 
 ```bash
-make app-status            # databricks apps get velocia-newop-sdc
-make app-restart           # stop + start the app (picks up env / resource changes)
-databricks bundle deploy -t dev --profile fieldeng   # redeploy code only
-databricks bundle destroy -t dev --profile fieldeng -y   # full cleanup
+make app-status                                            # databricks apps get velocia-newop-sdc
+make app-restart                                           # stop + start the app (picks up env / resource changes)
+databricks bundle deploy -t dev --profile <your-profile>   # redeploy code only
+databricks bundle destroy -t dev --profile <your-profile> -y   # full cleanup
 ```

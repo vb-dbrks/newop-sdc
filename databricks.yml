@@ -3,10 +3,10 @@
 # Single source of truth for: the FastAPI app on Databricks Apps, the Lakebase
 # Postgres instance + database it talks to, env wiring, and sync rules.
 #
-# Workflow:
-#   databricks bundle validate -t dev --profile fieldeng
-#   databricks bundle deploy   -t dev --profile fieldeng
-#   databricks bundle destroy  -t dev --profile fieldeng -y
+# Workflow (replace <profile> with your Databricks CLI profile name):
+#   databricks bundle validate -t dev --profile <profile>
+#   databricks bundle deploy   -t dev --profile <profile>
+#   databricks bundle destroy  -t dev --profile <profile> -y
 #
 # Resource model:
 #   - resources.database_instances.velocia_db        — Lakebase Postgres instance
@@ -95,4 +95,7 @@ targets:
     mode: development
     default: true
     workspace:
-      host: https://adb-984752964297111.11.azuredatabricks.net
+      # Replace with your Databricks workspace URL, e.g.
+      #   https://adb-XXXXXXXXXXXX.XX.azuredatabricks.net
+      #   https://<workspace>.cloud.databricks.com
+      host: https://<your-databricks-workspace-host>

@@ -1,6 +1,8 @@
 .PHONY: help install install-backend install-frontend dev dev-backend dev-frontend build db-reset test test-backend test-frontend lint fake-agent clean bundle-validate bundle-deploy bundle-destroy seed-dev app-status app-logs app-restart
 
-DBX_PROFILE ?= fieldeng
+# Override these on the command line or via env vars, e.g.
+#   make bundle-deploy DBX_PROFILE=mycustomer DBX_TARGET=dev
+DBX_PROFILE ?= DEFAULT
 DBX_TARGET  ?= dev
 APP_NAME    ?= velocia-newop-sdc
 

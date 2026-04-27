@@ -1,7 +1,8 @@
 """Idempotent dev-data seeder for the Velocia app's Lakebase Postgres.
 
 Inserts:
-  - 1 user row for varun.bhandary@databricks.com (sso_subject = email).
+  - 1 user row (defaults to dev.user@example.com — override via env vars
+    SEED_USER_EMAIL / SEED_USER_NAME).
   - 5 study_documents covering the New Opportunity / SDC mix.
   - 5 study_access_list rows granting that user the 'author' role on each doc.
 
@@ -12,7 +13,7 @@ Authentication
 Uses the Databricks SDK to mint a Lakebase OAuth token, which is the password
 for the role named after the user's client_id / email. The same flow Databricks
 Apps use server-side. Locally, you must point the SDK at the right workspace
-(env var DATABRICKS_CONFIG_PROFILE=fieldeng works).
+(env var DATABRICKS_CONFIG_PROFILE=<your-profile> works).
 
 Connection details
 ------------------
@@ -27,11 +28,12 @@ The script tries (in order):
 Usage
 -----
     # easiest — let the script discover the deployed app's bound DB
-    python scripts/seed_dev.py --profile fieldeng --app velocia-newop-sdc
+    SEED_USER_EMAIL=you@yourcompany.com SEED_USER_NAME="Your Name" \\
+        python scripts/seed_dev.py --profile <your-profile> --app velocia-newop-sdc
 
     # explicit
-    PGHOST=... PGDATABASE=velocia PGUSER=varun.bhandary@databricks.com \\
-        python scripts/seed_dev.py --profile fieldeng
+    PGHOST=... PGDATABASE=velocia PGUSER=you@yourcompany.com \\
+        python scripts/seed_dev.py --profile <your-profile>
 
 The Makefile wraps this as `make seed-dev`.
 """
@@ -50,8 +52,8 @@ from typing import Any
 import asyncpg  # type: ignore[import-not-found]
 
 
-SEED_USER_EMAIL = "varun.bhandary@databricks.com"
-SEED_USER_NAME = "Varun Bhandary"
+SEED_USER_EMAIL = os.environ.get("SEED_USER_EMAIL", "dev.user@example.com")
+SEED_USER_NAME = os.environ.get("SEED_USER_NAME", "Dev User")
 
 # (study_brief_title, study_acronym, study_id, document_type, study_status)
 SEED_STUDIES: list[tuple[str, str, str, str, str]] = [

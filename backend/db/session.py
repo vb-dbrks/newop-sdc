@@ -28,6 +28,7 @@ import os
 from collections.abc import AsyncIterator
 from urllib.parse import urlparse, urlunparse
 
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from backend.domain.models import Base
@@ -110,11 +111,17 @@ def _build_engine_kwargs(url: str) -> tuple[str, dict[str, object]]:
             raise RuntimeError("generate_database_credential returned no token")
         return token
 
+    server_settings: dict[str, str] = {"application_name": "velocia-newop-sdc"}
+    if settings.db_schema:
+        # Defense-in-depth: even raw `text(...)` queries that don't qualify a
+        # schema land in `velocia` instead of `public`.
+        server_settings["search_path"] = settings.db_schema
+
     connect_args: dict[str, object] = {
         "user": pg_user,
         "password": _mint_token,  # asyncpg accepts a callable; invoked per connect
         "ssl": "require",
-        "server_settings": {"application_name": "velocia-newop-sdc"},
+        "server_settings": server_settings,
     }
     if pg_db:
         connect_args["database"] = pg_db
@@ -141,12 +148,24 @@ SessionLocal = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSe
 
 
 async def init_db() -> None:
-    """Create all tables that don't yet exist. Idempotent.
+    """Create the app's schema (if any) and all tables. Idempotent.
 
     Called once at app startup from `backend.main.lifespan`. Safe to invoke
-    repeatedly — `create_all` is "create if not exists" semantics.
+    repeatedly — `CREATE SCHEMA IF NOT EXISTS` and `create_all` are both
+    no-ops when the objects already exist.
+
+    On Lakebase: `CREATE SCHEMA IF NOT EXISTS <schema> AUTHORIZATION
+    CURRENT_USER` makes the app's service principal the schema owner, so
+    every subsequent `CREATE TABLE` succeeds without any external GRANT
+    against `public`. The bundle's `CAN_CONNECT_AND_CREATE` resource
+    permission gives the SP database-level CREATE, which is enough.
     """
     async with engine.begin() as conn:
+        if settings.db_schema and engine.dialect.name == "postgresql":
+            schema = settings.db_schema.replace('"', '""')
+            await conn.execute(
+                text(f'CREATE SCHEMA IF NOT EXISTS "{schema}" AUTHORIZATION CURRENT_USER')
+            )
         await conn.run_sync(Base.metadata.create_all)
 
 

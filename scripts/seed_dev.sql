@@ -1,9 +1,18 @@
--- Velocia — Lakebase Postgres bootstrap + seed (alternative to scripts/seed_dev.py).
+-- Velocia — Lakebase Postgres bootstrap + seed.
 --
--- Use this when running scripts/seed_dev.py from your laptop is blocked by
--- network/firewall (e.g. WSAETIMEDOUT on Windows). It is fully self-contained:
--- creates the schema, optionally grants the app's service principal access to
--- it, and inserts the same dev fixture (1 user + 5 study_documents + 5
+-- This is a FALLBACK script. The primary path is now SEED_ON_STARTUP=true
+-- in app.yaml — the app's lifespan creates the `velocia` schema and the
+-- dev fixture by itself on first boot, with zero manual SQL or Python
+-- steps. Run this file only when:
+--
+--   1. SEED_ON_STARTUP is disabled and you don't want to enable it, OR
+--   2. The app's lifespan failed (check `make app-logs`) and you want
+--      to bootstrap manually, OR
+--   3. You want to add or modify rows ad-hoc after first deploy.
+--
+-- The script is fully self-contained: creates the `velocia` schema, the
+-- tables, GRANTs schema access to the app's service principal, and
+-- inserts the dev fixture (1 user + 5 study_documents + 5
 -- study_access_list rows).
 --
 -- ============================================================================
@@ -15,11 +24,9 @@
 --    away.
 --
 -- 2. Edit the 3 placeholders in the BEFORE-YOU-RUN block below:
---      :seed_user_email   — your Databricks/SCIM email
---      :seed_user_name    — display name in the UI
---      :app_sp_client_id  — the velocia app's service principal client_id
---                           (grab from `databricks apps get velocia-newop-sdc`
---                           field `service_principal_client_id`).
+--      <SEED_USER_EMAIL>   — your Databricks/SCIM email
+--      <SEED_USER_NAME>    — display name in the UI
+--      <APP_SP_CLIENT_ID>  — the velocia app's service principal client_id.
 --
 -- 3. Execute top-to-bottom. Re-running is safe — every INSERT uses
 --    ON CONFLICT DO NOTHING and DDL uses IF NOT EXISTS.
@@ -43,7 +50,14 @@
 
 -- ----------------------------------------------------------------------------
 -- 1. Schema (mirrors backend/domain/models.py — Phase-1 subset)
+--
+-- All tables live in the `velocia` schema. Owned by whoever runs this
+-- script — typically the human DB-instance creator, who is a Lakebase
+-- superuser. The GRANT block in section 2 hands access to the app SP.
 -- ----------------------------------------------------------------------------
+
+CREATE SCHEMA IF NOT EXISTS velocia AUTHORIZATION CURRENT_USER;
+SET search_path TO velocia;
 
 CREATE TABLE IF NOT EXISTS users (
     user_id        VARCHAR(36)  PRIMARY KEY,
@@ -143,7 +157,7 @@ CREATE INDEX IF NOT EXISTS ix_idempotency_keys_created_at
 
 
 -- ----------------------------------------------------------------------------
--- 2. REQUIRED — grant the app's service principal access to schema public.
+-- 2. REQUIRED — grant the app's service principal access to schema velocia.
 --
 -- Tables created above are owned by whoever runs this script (you). The
 -- app's SP is a different Postgres role and, by default, has zero
@@ -160,12 +174,12 @@ CREATE INDEX IF NOT EXISTS ix_idempotency_keys_created_at
 --     | ConvertFrom-Json | %{ $_.service_principal_client_id }
 -- ----------------------------------------------------------------------------
 
-GRANT USAGE, CREATE  ON SCHEMA public                  TO "<APP_SP_CLIENT_ID>";
-GRANT ALL            ON ALL TABLES    IN SCHEMA public TO "<APP_SP_CLIENT_ID>";
-GRANT ALL            ON ALL SEQUENCES IN SCHEMA public TO "<APP_SP_CLIENT_ID>";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
+GRANT USAGE, CREATE  ON SCHEMA velocia                  TO "<APP_SP_CLIENT_ID>";
+GRANT ALL            ON ALL TABLES    IN SCHEMA velocia TO "<APP_SP_CLIENT_ID>";
+GRANT ALL            ON ALL SEQUENCES IN SCHEMA velocia TO "<APP_SP_CLIENT_ID>";
+ALTER DEFAULT PRIVILEGES IN SCHEMA velocia
     GRANT ALL ON TABLES    TO "<APP_SP_CLIENT_ID>";
-ALTER DEFAULT PRIVILEGES IN SCHEMA public
+ALTER DEFAULT PRIVILEGES IN SCHEMA velocia
     GRANT ALL ON SEQUENCES TO "<APP_SP_CLIENT_ID>";
 
 

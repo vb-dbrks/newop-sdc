@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -19,9 +20,13 @@ from backend.api import (
     uploads,
 )
 from backend.api.me import router as me_router
-from backend.db.session import init_db
+from backend.db.seed import seed_default
+from backend.db.session import SessionLocal, init_db
 from backend.middleware.idempotency import IdempotencyMiddleware
 from backend.middleware.security_headers import SecurityHeadersMiddleware
+from backend.settings import settings
+
+logger = logging.getLogger(__name__)
 
 FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 
@@ -30,6 +35,19 @@ FRONTEND_DIST = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 async def lifespan(app: FastAPI):
     log_filter.install()
     await init_db()
+    if settings.seed_on_startup and settings.seed_user_email:
+        try:
+            async with SessionLocal() as session:
+                await seed_default(
+                    session,
+                    user_email=settings.seed_user_email,
+                    user_name=settings.seed_user_name or settings.seed_user_email,
+                )
+        except Exception:  # seed must never block app startup
+            logger.exception(
+                "Seed-on-startup failed; app will start anyway. "
+                "Inspect logs and re-run scripts/seed_dev.py if needed."
+            )
     yield
 
 

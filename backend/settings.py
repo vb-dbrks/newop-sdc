@@ -7,6 +7,11 @@ class Settings(BaseSettings):
 
     # --- Database ---
     database_url: str = Field(default="sqlite+aiosqlite:///./local.db")
+    # Postgres schema the ORM lives in. None / unset = no schema qualifier
+    # (used by SQLite in local dev / tests). On Lakebase deploys we set this
+    # to "velocia" via app.yaml so the app's service principal owns its own
+    # schema and doesn't need a separate GRANT on the Postgres `public` role.
+    db_schema: str | None = None
 
     # --- Databricks SDK (default chain picks up these when set) ---
     databricks_host: str | None = None
@@ -22,6 +27,16 @@ class Settings(BaseSettings):
     # --- Local-dev SSO bypass ---
     dev_fake_user_email: str | None = None
     dev_fake_user_name: str | None = None
+
+    # --- Seed-on-startup (zero-touch first deploy) ---
+    # When SEED_ON_STARTUP=true, the lifespan inserts the dev fixture
+    # (1 user + 5 study_documents + 5 author-role grants) right after
+    # init_db(). Idempotent — safe to leave on permanently. The user row
+    # uses SEED_USER_EMAIL / SEED_USER_NAME so the customer's own SSO
+    # login lands on a populated dashboard with no SQL editor work.
+    seed_on_startup: bool = False
+    seed_user_email: str | None = None
+    seed_user_name: str | None = None
 
     # --- Logging ---
     log_level: str = Field(default="INFO")

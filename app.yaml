@@ -40,6 +40,22 @@ env:
   # in databricks.yml.
   - name: DATABRICKS_DATABASE_INSTANCE_NAME
     value: "velocia-newop-sdc-db"
+  # Postgres schema. The app's service principal creates and owns this schema
+  # on first boot (`init_db()`), so no out-of-band GRANT against `public` is
+  # ever needed — the SP's `CAN_CONNECT_AND_CREATE` binding is sufficient.
+  - name: DB_SCHEMA
+    value: "velocia"
+  # Zero-touch seed: when SEED_ON_STARTUP=true the lifespan inserts the dev
+  # fixture (1 user + 5 studies + 5 author grants) right after init_db. The
+  # SEED_USER_EMAIL row is what makes the dashboard non-empty for the first
+  # human who logs in via SSO. Idempotent — safe to leave on permanently.
+  # Edit the email/name to the customer's primary user before deploying.
+  - name: SEED_ON_STARTUP
+    value: "true"
+  - name: SEED_USER_EMAIL
+    value: "dev.user@example.com"
+  - name: SEED_USER_NAME
+    value: "Dev User"
   # Inert defaults — the agent isn't wired up in this deploy yet, but settings.py
   # requires both to parse cleanly.
   - name: AGENT_API_BASE

@@ -192,31 +192,37 @@ def _resolve_pg_host(instance_name: str, profile: str | None) -> str:
     return dns
 
 
-async def _grant_app_sp_perms(conn: asyncpg.Connection, app_sp_client_id: str | None) -> None:
-    """Grant the app's service principal CREATE/USAGE on schema public.
+async def _ensure_schema(conn: asyncpg.Connection, app_sp_client_id: str | None) -> None:
+    """Ensure the velocia schema exists and the app SP can use it.
 
-    Lakebase's default `public` schema doesn't allow non-superusers to create
-    objects. The seeder runs as the human DB-instance creator (a Lakebase
-    superuser), so we use it as the one-time bootstrap to get the app SP write
-    access. Idempotent — `GRANT` is safe to repeat.
+    With seed-on-startup (SEED_ON_STARTUP=true in app.yaml) the app's SP
+    creates and owns the velocia schema itself, and this CLI script is
+    just a fallback. We still create the schema (no-op if already there)
+    and grant access to the SP — covers the case where the human runs
+    this BEFORE the app has had a chance to boot.
     """
+    await conn.execute(
+        'CREATE SCHEMA IF NOT EXISTS velocia AUTHORIZATION CURRENT_USER'
+    )
+    await conn.execute("SET search_path TO velocia")
+
     if not app_sp_client_id:
         return
-    print(f"Granting CREATE/USAGE on schema public to SP {app_sp_client_id}...")
-    await conn.execute(f'GRANT CREATE, USAGE ON SCHEMA public TO "{app_sp_client_id}"')
+    print(f"Granting CREATE/USAGE on schema velocia to SP {app_sp_client_id}...")
+    await conn.execute(f'GRANT CREATE, USAGE ON SCHEMA velocia TO "{app_sp_client_id}"')
     await conn.execute(
-        f'GRANT ALL ON ALL TABLES IN SCHEMA public TO "{app_sp_client_id}"'
+        f'GRANT ALL ON ALL TABLES IN SCHEMA velocia TO "{app_sp_client_id}"'
     )
     await conn.execute(
-        f'GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO "{app_sp_client_id}"'
+        f'GRANT ALL ON ALL SEQUENCES IN SCHEMA velocia TO "{app_sp_client_id}"'
     )
     # Default privileges on future objects too.
     await conn.execute(
-        f'ALTER DEFAULT PRIVILEGES IN SCHEMA public '
+        f'ALTER DEFAULT PRIVILEGES IN SCHEMA velocia '
         f'GRANT ALL ON TABLES TO "{app_sp_client_id}"'
     )
     await conn.execute(
-        f'ALTER DEFAULT PRIVILEGES IN SCHEMA public '
+        f'ALTER DEFAULT PRIVILEGES IN SCHEMA velocia '
         f'GRANT ALL ON SEQUENCES TO "{app_sp_client_id}"'
     )
 
@@ -339,22 +345,24 @@ async def _run(args: argparse.Namespace) -> None:
         ssl="require",
     )
     try:
-        # One-time: ensure the app SP can use schema public. Idempotent.
-        await _grant_app_sp_perms(conn, sp_client_id)
+        # Idempotent: ensure velocia schema exists + SP has access.
+        await _ensure_schema(conn, sp_client_id)
 
         # Wait for the schema the app's lifespan creates. If the app hasn't
         # booted at least once yet, fail loudly so the human knows to start it.
         tables = {
             r["tablename"]
             for r in await conn.fetch(
-                "SELECT tablename FROM pg_tables WHERE schemaname = 'public'"
+                "SELECT tablename FROM pg_tables WHERE schemaname = 'velocia'"
             )
         }
         missing = {"users", "study_documents", "study_access_list"} - tables
         if missing:
             sys.exit(
-                f"Schema not yet created in {pgdatabase}: missing {missing}. "
-                f"Hit the app once (e.g. /healthz) so its lifespan() runs init_db()."
+                f"Schema 'velocia' not yet populated in {pgdatabase}: "
+                f"missing {missing}. Hit the app once (e.g. /healthz) so its "
+                f"lifespan() runs init_db(), or enable SEED_ON_STARTUP=true in "
+                f"app.yaml so the app does this end-to-end on boot."
             )
 
         counts = await _seed(conn)

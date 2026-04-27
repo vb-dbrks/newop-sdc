@@ -64,11 +64,21 @@ Before you deploy, set:
 1. **Workspace host** — edit `targets.dev.workspace.host` in `databricks.yml`.
 2. **CLI profile** — set `DBX_PROFILE` (Makefile var) to your Databricks CLI profile name, or pass `--profile <name>` directly.
 
+Before `bundle-deploy`, also edit **`app.yaml`** and set the dev seed values:
+
+```yaml
+- name: SEED_USER_EMAIL
+  value: "alice@yourcompany.com"   # the human who'll log in via SSO
+- name: SEED_USER_NAME
+  value: "Alice Customer"
+```
+
+The app's lifespan inserts the dev fixture (1 user + 5 studies + author grants) into a freshly-owned `velocia` Postgres schema on first boot — zero SQL/Python steps. Set `SEED_ON_STARTUP=false` if you'd rather seed manually with `make seed-dev`.
+
 ```bash
 make build                                       # populate frontend/dist (the SPA bundle the app serves)
 make bundle-validate DBX_PROFILE=<your-profile>  # databricks bundle validate -t dev
-make bundle-deploy   DBX_PROFILE=<your-profile>  # provisions Lakebase + app and deploys code
-make seed-dev        DBX_PROFILE=<your-profile>  # idempotent: 1 user + 5 study_documents + access grants
+make bundle-deploy   DBX_PROFILE=<your-profile>  # provisions Lakebase + app, deploys code, app self-seeds
 make bundle-destroy  DBX_PROFILE=<your-profile>  # tear it all down
 ```
 
@@ -87,15 +97,20 @@ https://velocia-newop-sdc-<workspace-id>.azure.databricksapps.com
 
 The bundle does NOT create a Unity Catalog wrapping the Postgres database — the app talks to Lakebase directly via asyncpg and doesn't need UC. This avoids requiring `CREATE CATALOG` on the metastore (a permission engagement / customer service principals frequently lack). To opt in to a UC catalog later, uncomment the `database_catalogs` block in `databricks.yml` (or have a UC admin create it manually).
 
-`app.yaml` reads the runtime-injected `PGHOST` / `PGUSER` / `PGDATABASE`, assembles a credential-free `DATABASE_URL`, and execs uvicorn against `$DATABRICKS_APP_PORT`. `backend/db/session.py` mints a Lakebase OAuth token (via `WorkspaceClient.database.generate_database_credential`) for every new physical pool connection — a static `PGPASSWORD` is **not** injected by the runtime, by design. Schema is auto-created on app startup via SQLAlchemy `Base.metadata.create_all` (see `backend/db/session.py:init_db`); no Alembic.
+`app.yaml` reads the runtime-injected `PGHOST` / `PGUSER` / `PGDATABASE`, assembles a credential-free `DATABASE_URL`, and execs uvicorn against `$DATABRICKS_APP_PORT`. `backend/db/session.py` mints a Lakebase OAuth token (via `WorkspaceClient.database.generate_database_credential`) for every new physical pool connection — a static `PGPASSWORD` is **not** injected by the runtime, by design.
 
-> **First-deploy ordering note:** Lakebase's default `public` schema doesn't grant `CREATE` to non-superuser Postgres roles, so the app's service principal can't run `init_db()` until it's been granted CREATE on `public`. `make seed-dev` handles this (it runs as the human DB-instance creator, who is a Lakebase superuser, and idempotently grants the SP). On a fresh deploy run `make seed-dev` once before the app's first SSO login — afterwards the app's `lifespan()` will be able to create tables on its own.
+### Schema lifecycle (zero-touch first deploy)
 
-### Seeding
+The app owns its own Postgres schema. `init_db()` runs `CREATE SCHEMA IF NOT EXISTS velocia AUTHORIZATION CURRENT_USER` before `Base.metadata.create_all`, which makes the app's service principal the schema owner. Result: every subsequent `CREATE TABLE` succeeds against the SP's own schema, and **no out-of-band `GRANT ... ON public TO <sp>` is ever needed** — the bundle's `CAN_CONNECT_AND_CREATE` resource permission gives the SP database-level CREATE, which is enough.
 
-`scripts/seed_dev.py` mints a Lakebase OAuth token through the SDK, connects with `asyncpg`, and inserts a small fixture (1 user, 5 study documents, 5 access grants). It uses `ON CONFLICT DO NOTHING` and stable UUIDs so reruns are safe. By default the script auto-discovers the bound DB from `databricks apps get velocia-newop-sdc`; pass `--app` to point at a different deployment.
+If `SEED_ON_STARTUP=true` (set by default in `app.yaml`), the lifespan also inserts the dev fixture (1 user + 5 studies + author grants) right after `init_db()`. The user row uses `SEED_USER_EMAIL` / `SEED_USER_NAME`, so the customer's first SSO login lands on a populated dashboard.
 
-If your laptop can't reach the Lakebase host on port 5432 (corporate firewalls, no VPN — symptom on Windows is `semaphore timeout period has expired`), use **`scripts/seed_dev.sql`** instead. It's a self-contained SQL script — DDL + grants + the same fixture rows — that you paste into the workspace's SQL editor (or any in-workspace Postgres client). Replace `<SEED_USER_EMAIL>`, `<SEED_USER_NAME>`, and `<APP_SP_CLIENT_ID>` placeholders before running.
+### Manual seeding (only when needed)
+
+For ad-hoc reruns or when seed-on-startup is off, two paths:
+
+- **`scripts/seed_dev.py`** mints a Lakebase OAuth token via the SDK, connects with `asyncpg`, and applies the same fixture. Auto-discovers the bound DB from `databricks apps get`. Run with `make seed-dev`.
+- **`scripts/seed_dev.sql`** — a self-contained SQL fallback for when networking blocks the Python path (e.g. `semaphore timeout period has expired` on Windows). Paste into the workspace SQL editor; replace `<SEED_USER_EMAIL>`, `<SEED_USER_NAME>`, and `<APP_SP_CLIENT_ID>` placeholders before running.
 
 ### Day-2 ops
 

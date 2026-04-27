@@ -26,6 +26,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    MetaData,
     String,
     Text,
     func,
@@ -40,10 +41,18 @@ from backend.domain.enums import (
     StudyAccessRole,
     StudyStatus,
 )
+from backend.settings import settings
 
 
 class Base(DeclarativeBase):
-    """Shared declarative base for all ORM models."""
+    """Shared declarative base for all ORM models.
+
+    All tables are pinned to `settings.db_schema` (e.g. `velocia` on
+    Lakebase). When unset (SQLite local dev / tests) tables live in the
+    default schema as before.
+    """
+
+    metadata = MetaData(schema=settings.db_schema)
 
 
 def _uuid_str() -> str:

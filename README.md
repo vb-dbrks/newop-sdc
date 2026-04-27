@@ -87,6 +87,8 @@ The bundle does NOT create a Unity Catalog wrapping the Postgres database — th
 
 `scripts/seed_dev.py` mints a Lakebase OAuth token through the SDK, connects with `asyncpg`, and inserts a small fixture (1 user, 5 study documents, 5 access grants). It uses `ON CONFLICT DO NOTHING` and stable UUIDs so reruns are safe. By default the script auto-discovers the bound DB from `databricks apps get velocia-newop-sdc`; pass `--app` to point at a different deployment.
 
+If your laptop can't reach the Lakebase host on port 5432 (corporate firewalls, no VPN — symptom on Windows is `semaphore timeout period has expired`), use **`scripts/seed_dev.sql`** instead. It's a self-contained SQL script — DDL + grants + the same fixture rows — that you paste into the workspace's SQL editor (or any in-workspace Postgres client). Replace `<SEED_USER_EMAIL>`, `<SEED_USER_NAME>`, and `<APP_SP_CLIENT_ID>` placeholders before running.
+
 ### Day-2 ops
 
 ```bash

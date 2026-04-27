@@ -50,28 +50,30 @@ env:
   # init_db. Idempotent — safe to leave on permanently.
   - name: SEED_ON_STARTUP
     value: "true"
-  # ---- Single-user seed (simplest case) ----
-  # Edit the email/name to the customer's primary user before deploying.
-  - name: SEED_USER_EMAIL
-    value: "dev.user@example.com"
-  - name: SEED_USER_NAME
-    value: "Dev User"
-  # ---- Multi-user seed (overrides SEED_USER_EMAIL when set) ----
-  # JSON array. Each entry: {email, name, role?, studies?}. Role is
-  # "author" (default) or "reviewer". `studies` is an optional list of
-  # study_id values (D9999C0000{1..5}) controlling which fixture rows
-  # the user gets access to — omit / null = all 5. Useful for testing
-  # the per-study authorization model with author + reviewer + a user
-  # with limited scope side by side.
+  # Three-user fixture exercises every Layer-3 case at once:
+  #   - Alice  → AUTHOR on all 5 studies         (full read/write)
+  #   - Bob    → REVIEWER on all 5 studies       (read-only flows)
+  #   - Carol  → AUTHOR on D9999C00001+2 only    (proves access-list scoping)
   #
-  # - name: SEED_USERS
-  #   value: |
-  #     [
-  #       {"email": "alice@customer.com", "name": "Alice Author",   "role": "author"},
-  #       {"email": "bob@customer.com",   "name": "Bob Reviewer",   "role": "reviewer"},
-  #       {"email": "carol@customer.com", "name": "Carol Scoped",   "role": "author",
-  #        "studies": ["D9999C00001", "D9999C00002"]}
-  #     ]
+  # Replace the example emails with the customer's actual SCIM userNames
+  # before `make bundle-deploy`. `name` is the display name shown in the
+  # header. `role` is "author" (default) or "reviewer". `studies` is
+  # optional — omit / null = all 5; restricting it scopes that user's
+  # portfolio table.
+  - name: SEED_USERS
+    value: |
+      [
+        {"email": "alice@customer.com", "name": "Alice Author",   "role": "author"},
+        {"email": "bob@customer.com",   "name": "Bob Reviewer",   "role": "reviewer"},
+        {"email": "carol@customer.com", "name": "Carol Scoped",   "role": "author",
+         "studies": ["D9999C00001", "D9999C00002"]}
+      ]
+  # Legacy single-user fallback. Ignored when SEED_USERS is set above;
+  # uncomment instead of SEED_USERS if you only want one seeded user.
+  # - name: SEED_USER_EMAIL
+  #   value: "dev.user@example.com"
+  # - name: SEED_USER_NAME
+  #   value: "Dev User"
   # Inert defaults — the agent isn't wired up in this deploy yet, but settings.py
   # requires both to parse cleanly.
   - name: AGENT_API_BASE
